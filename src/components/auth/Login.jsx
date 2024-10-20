@@ -40,7 +40,7 @@ const Login = () => {
                     "Content-Type": "application/json",
                     "Accept": "application/json"
                 },
-                 withCredentials: false,
+                 withCredentials: true,
             });
             console.log("user");
             if (res.data.success) {

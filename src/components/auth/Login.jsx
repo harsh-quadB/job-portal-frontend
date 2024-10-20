@@ -40,9 +40,8 @@ const Login = () => {
                     "Content-Type": "application/json",
                     "Accept": "application/json"
                 },
-                 withCredentials: false,
+                withCredentials: true,
             });
-            console.log("user");
             if (res.data.success) {
                 dispatch(setUser(res.data.user));
                 navigate("/");

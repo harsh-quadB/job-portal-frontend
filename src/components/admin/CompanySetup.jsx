@@ -1,19 +1,20 @@
-import React, { useEffect, useState } from 'react'
-import Navbar from '../shared/Navbar'
-import { Button } from '../ui/button'
-import { ArrowLeft, Loader2 } from 'lucide-react'
-import { Label } from '../ui/label'
-import { Input } from '../ui/input'
-import axios from 'axios'
-import { COMPANY_API_END_POINT } from '@/utils/constant'
-import { useNavigate, useParams } from 'react-router-dom'
-import { toast } from 'sonner'
-import { useSelector } from 'react-redux'
-import useGetCompanyById from '@/hooks/useGetCompanyById'
+import React, { useEffect, useState } from 'react';
+import Navbar from '../shared/Navbar';
+import { Button } from '../ui/button';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
+import axios from 'axios';
+import { COMPANY_API_END_POINT } from '@/utils/constant';
+import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
+import { useSelector } from 'react-redux';
+import useGetCompanyById from '@/hooks/useGetCompanyById';
 
 const CompanySetup = () => {
     const params = useParams();
     useGetCompanyById(params.id);
+
     const [input, setInput] = useState({
         name: "",
         description: "",
@@ -21,21 +22,48 @@ const CompanySetup = () => {
         location: "",
         file: null
     });
-    const {singleCompany} = useSelector(store=>store.company);
+
+    const { singleCompany } = useSelector(store => store.company);
     const [loading, setLoading] = useState(false);
+    const [filePreview, setFilePreview] = useState(null);  // For file preview
     const navigate = useNavigate();
+
+    // Function to validate URLs
+    const validateURL = (url) => {
+        const urlPattern = new RegExp('^(https?:\\/\\/)?'+ // validate protocol
+            '((([a-zA-Z0-9]{1,})+\\.)+([a-zA-Z]{2,}))' + // domain name
+            '(\\:[0-9]{1,5})?' + // port (optional)
+            '(\\/.*)?$'); // path (optional)
+        return urlPattern.test(url);
+    };
 
     const changeEventHandler = (e) => {
         setInput({ ...input, [e.target.name]: e.target.value });
-    }
+    };
 
     const changeFileHandler = (e) => {
         const file = e.target.files?.[0];
-        setInput({ ...input, file });
-    }
+        if (file) {
+            setInput({ ...input, file });
+            setFilePreview(URL.createObjectURL(file));  // Set preview URL
+        }
+    };
 
     const submitHandler = async (e) => {
         e.preventDefault();
+
+        // Check if required fields are filled
+        if (!input.name || !input.description || !input.website || !input.location) {
+            toast.error("Please fill in all required fields.");
+            return;
+        }
+
+        // Validate website URL
+        if (!validateURL(input.website)) {
+            toast.error("Please enter a valid URL for the website.");
+            return;
+        }
+
         const formData = new FormData();
         formData.append("name", input.name);
         formData.append("description", input.description);
@@ -44,6 +72,7 @@ const CompanySetup = () => {
         if (input.file) {
             formData.append("file", input.file);
         }
+
         try {
             setLoading(true);
             const res = await axios.put(`${COMPANY_API_END_POINT}/update/${params.id}`, formData, {
@@ -57,22 +86,26 @@ const CompanySetup = () => {
                 navigate("/admin/companies");
             }
         } catch (error) {
-            console.log(error);
-            toast.error(error.response.data.message);
+            console.error(error);
+            const errorMsg = error.response?.data?.message || "An error occurred. Please try again.";
+            toast.error(errorMsg);
         } finally {
             setLoading(false);
         }
-    }
+    };
 
     useEffect(() => {
-        setInput({
-            name: singleCompany.name || "",
-            description: singleCompany.description || "",
-            website: singleCompany.website || "",
-            location: singleCompany.location || "",
-            file: singleCompany.file || null
-        })
-    },[singleCompany]);
+        if (singleCompany) {
+            setInput({
+                name: singleCompany.name || "",
+                description: singleCompany.description || "",
+                website: singleCompany.website || "",
+                location: singleCompany.location || "",
+                file: null  // Reset file input for security reasons
+            });
+            setFilePreview(singleCompany.file || null);  // Show existing file preview if available
+        }
+    }, [singleCompany]);
 
     return (
         <div>
@@ -94,6 +127,7 @@ const CompanySetup = () => {
                                 name="name"
                                 value={input.name}
                                 onChange={changeEventHandler}
+                                required
                             />
                         </div>
                         <div>
@@ -103,6 +137,7 @@ const CompanySetup = () => {
                                 name="description"
                                 value={input.description}
                                 onChange={changeEventHandler}
+                                required
                             />
                         </div>
                         <div>
@@ -112,6 +147,7 @@ const CompanySetup = () => {
                                 name="website"
                                 value={input.website}
                                 onChange={changeEventHandler}
+                                required
                             />
                         </div>
                         <div>
@@ -121,6 +157,7 @@ const CompanySetup = () => {
                                 name="location"
                                 value={input.location}
                                 onChange={changeEventHandler}
+                                required
                             />
                         </div>
                         <div>
@@ -130,6 +167,7 @@ const CompanySetup = () => {
                                 accept="image/*"
                                 onChange={changeFileHandler}
                             />
+                            {filePreview && <img src={filePreview} alt="Logo preview" className="mt-4 w-32 h-32 object-cover" />}
                         </div>
                     </div>
                     {
@@ -137,9 +175,8 @@ const CompanySetup = () => {
                     }
                 </form>
             </div>
-
         </div>
-    )
-}
+    );
+};
 
-export default CompanySetup
+export default CompanySetup;

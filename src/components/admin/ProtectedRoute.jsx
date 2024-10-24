@@ -1,22 +1,26 @@
-import { useEffect } from "react";
-import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+// src/components/admin/ProtectedRoute.jsx
+import { Navigate, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
-const ProtectedRoute = ({children}) => {
-    const {user} = useSelector(store=>store.auth);
+const ProtectedRoute = ({ children }) => {
+  const { user } = useSelector(store => store.auth);
+  const location = useLocation();
 
-    const navigate = useNavigate();
+  if (!user) {
+    // Redirect to login if not authenticated
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
-    useEffect(()=>{
-        if(user === null || user.role !== 'recruiter'){
-            navigate("/");
-        }
-    },[]);
+  // Check for recruiter-specific routes
+  if (location.pathname === '/recruiter-dashboard') {
+    if (user.role !== 'recruiter') {
+      // Redirect non-recruiters to home page
+      return <Navigate to="/" replace />;
+    }
+  }
 
-    return (
-        <>
-        {children}
-        </>
-    )
+  // Allow access to the protected route
+  return children;
 };
+
 export default ProtectedRoute;
